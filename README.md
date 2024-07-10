@@ -1,6 +1,6 @@
 # Limiter
 
-A promise poll with RPS limiter.
+A promise pool with RPS limiter.
 
 Features:
 
