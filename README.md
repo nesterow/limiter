@@ -24,21 +24,20 @@ bun add github:nesterow/limiter # or pnpm
 ### Limit number of requests
 
 ```typescript
-import {Limiter} from '@nesterow/limiter'
+import { Limiter } from "@nesterow/limiter";
 
 const task = () => {
-    await fetch('https://my.api.xyz')
-    // ... write
-}
+  await fetch("https://my.api.xyz");
+  // ... write
+};
 
 const limiter = new Limiter({
-    limit: 10
-})
+  limit: 10,
+});
 
-for (let i=0; i<100; i++) {
-    await limiter.process(task)
+for (let i = 0; i < 100; i++) {
+  await limiter.process(task);
 }
-
 ```
 
 ### Limit RPS

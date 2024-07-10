@@ -1,0 +1,5 @@
+{
+  "name": "@nesterow/limiter",
+  "version": "0.1.0",
+  "exports": "./limiter.ts"
+}

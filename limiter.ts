@@ -140,7 +140,7 @@ export class Limiter implements ILimiter {
     }
   }
 
-  get length() {
+  get length(): number {
     return this.#promisesCount;
   }
 }
