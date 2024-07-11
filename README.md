@@ -54,7 +54,7 @@ limiter.process(task);
 limiter.process(task);
 limiter.process(task);
 
-await limiter.done()
+await limiter.done();
 ```
 
 ### Batch processing
