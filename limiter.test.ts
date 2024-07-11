@@ -25,33 +25,38 @@ const setup = ({ send, close, delay = 300 }: any) => {
   });
 };
 
-test("Limiter: opens #limit of concurent connections", async () => {
-  const connection = setup({
-    send: jest.fn(() => Promise.resolve()),
-    close: jest.fn(() => Promise.resolve()),
-    delay: 500,
-  });
+test(
+  "Limiter: opens #limit of concurent connections",
+  async () => {
+    const connection = setup({
+      send: jest.fn(() => Promise.resolve()),
+      close: jest.fn(() => Promise.resolve()),
+      delay: 500,
+    });
 
-  const limiter = new Limiter({ limit: 3 });
-  const connections = Array.from({ length: 7 }, () => connection());
+    const limiter = new Limiter({ limit: 3 });
+    const connections = Array.from({ length: 7 }, () => connection());
 
-  limiter.process(
-    ...connections.map((c) => {
-      return c.process;
-    }),
-  );
+    limiter.process(
+      ...connections.map((c) => {
+        return c.process;
+      }),
+    );
 
-  await delay(0);
-  expect(limiter.length).toBe(3);
+    await delay(0);
+    expect(limiter.length).toBe(3);
 
-  await delay(500);
-  expect(limiter.length).toBe(3);
+    await delay(500);
+    expect(limiter.length).toBe(3);
 
-  await delay(500);
-  expect(limiter.length).toBe(1);
+    await delay(500);
+    expect(limiter.length).toBe(1);
 
-  expect(connections[0].send).toBeCalledTimes(7);
-});
+    await limiter.done();
+    expect(connections[0].send).toBeCalledTimes(7);
+  },
+  { timeout: 5000 },
+);
 
 test("Limiter: can add new connections to poll", async () => {
   const connection = setup({

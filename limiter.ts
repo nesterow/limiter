@@ -2,6 +2,9 @@ type AsyncCallback = () => any | Promise<any>;
 
 export interface ILimiter {
   process: (...cb: AsyncCallback[]) => Promise<void>;
+  done: () => Promise<void>;
+  length: number;
+  isProcessing: boolean;
 }
 
 export interface ILimiterOptions {
@@ -30,6 +33,7 @@ export class LimiterRetryError extends Error {
 
 export class Limiter implements ILimiter {
   #limit = 10;
+  #processing: boolean = false;
   #promisesCount = 0;
   #promises: Promise<any>[] = [];
   #retryQueue: Array<ILimiterRetryItem> = [];
@@ -71,6 +75,8 @@ export class Limiter implements ILimiter {
       this.#promises = [];
     } catch (error) {
       if (!this.#onError) {
+        this.#promises = [];
+        this.#processing = false;
         throw error;
       }
       for (;;) {
@@ -81,7 +87,13 @@ export class Limiter implements ILimiter {
     }
   }
 
+  /**
+   * Process the callbacks.
+   * A callback must be a function that returns a promise.
+   * @param callbacks
+   */
   async process(...callbacks: AsyncCallback[] | ILimiterRetryItem[]) {
+    this.#processing = true;
     for (;;) {
       const item = callbacks.pop();
       if (!item) break;
@@ -131,6 +143,9 @@ export class Limiter implements ILimiter {
             new LimiterRetryError("Retry limit exceeded", item.error),
           );
         } else {
+          this.#promises = [];
+          this.#retryQueue = [];
+          this.#processing = false;
           throw new LimiterRetryError("Retry limit exceeded", item.error);
         }
       }
@@ -138,9 +153,30 @@ export class Limiter implements ILimiter {
         await this.process(...retryItems);
       }
     }
+    this.#processing = false;
   }
 
+  /**
+   * Wait until all the promises are resolved.
+   **/
+  async done() {
+    if (this.isProcessing) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await this.done();
+    }
+  }
+
+  /**
+   * Get the number of promises in the queue.
+   */
   get length(): number {
     return this.#promisesCount;
+  }
+
+  /**
+   * Get the processing status.
+   */
+  get isProcessing(): boolean {
+    return this.#processing;
   }
 }

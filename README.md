@@ -19,44 +19,58 @@ Features:
 bun add github:nesterow/limiter # or pnpm
 ```
 
+## API
+
+- limit - default 10
+- maxRetry - number of retries, use Infinity to retry until dead
+- rps - if set throttles task execution based on provided rate per second
+- onError() - if set, the errors are handled silently
+
+```typescript
+limiter = new Limiter({
+  limit?: number;
+  maxRetry?: number;
+  rps?: number;
+  onError?: (error: Error) => Promise<void> | void;
+})
+```
+
 ## Usage
 
 ### Add tasks
 
 ```typescript
-import { Limiter, LimiterRetryError } from "@nesterow/limiter";
-
-const task = ({ url }) => {
-  await fetch(url);
-  // ... write
-};
+import { Limiter } from "@nesterow/limiter";
 
 const limiter = new Limiter({
   limit: 20,
-  onError(error) {
-    // Logger.error(error)
-  },
 });
 
+const task = () => {
+  await fetch(url);
+};
+
 limiter.process(task);
 limiter.process(task);
 limiter.process(task);
+
+await limiter.done()
 ```
 
-### Limit number of requests
+### Batch processing
 
 ```typescript
 import { Limiter } from "@nesterow/limiter";
 
 const task = () => {
   await fetch("https://my.api.xyz");
-  // ... write
 };
 
 const limiter = new Limiter({
   limit: 10,
 });
 
+// process 100 tasks, 10 at the same time
 await limiter.process(...Array.from({ length: 100 }, () => task()));
 ```
 
@@ -67,7 +81,6 @@ import { Limiter } from "@nesterow/limiter";
 
 const execEvery100ms = () => {
   await fetch("https://my.api.xyz");
-  // ... write
 };
 
 const limiter = new Limiter({
@@ -75,6 +88,7 @@ const limiter = new Limiter({
   rps: 10,
 });
 
+// trottle every 100ms
 await limiter.process(...Array.from({ length: 100 }, () => execEvery100ms()));
 ```
 
@@ -86,7 +100,6 @@ import { Limiter, LimiterRetryError } from "@nesterow/limiter";
 const retry5times = () => {
   await fetch("https://my.api.xyz");
   throw new Error("Connection refused");
-  // ... write
 };
 
 const limiter = new Limiter({
@@ -96,7 +109,7 @@ const limiter = new Limiter({
 
 for (let i = 0; i < 100; i++) {
   try {
-    await limiter.process(Array.from({ length: 100 }, () => retry5times()));
+    await limiter.process(...Array.from({ length: 100 }, () => retry5times()));
   } catch (e) {
     if (e instanceof LimiterRetryError) {
       // Logger.log(e)
@@ -105,26 +118,6 @@ for (let i = 0; i < 100; i++) {
 }
 ```
 
-### Handle errors in background
+## License
 
-```typescript
-import { Limiter, LimiterRetryError } from "@nesterow/limiter";
-
-const wontStopPooling = () => {
-  await fetch("https://my.api.xyz");
-  throw new Error("Connection refused");
-  // ... write
-};
-
-const limiter = new Limiter({
-  limit: 20,
-  maxRetry: 5,
-  onError(error) {
-    // Logger.error(error)
-  },
-});
-
-for (let i = 0; i < 100; i++) {
-  await limiter.process(Array.from({ length: 100 }, () => wontStopPooling()));
-}
-```
+MIT
